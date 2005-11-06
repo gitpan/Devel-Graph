@@ -8,7 +8,6 @@ package Devel::Graph::Node;
 
 @ISA = qw/Graph::Easy::Node Exporter/;
 
-use 5.006001;
 use warnings;
 use Graph::Easy::Node;
 use Exporter;

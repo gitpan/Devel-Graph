@@ -6,9 +6,8 @@
 
 package Devel::Graph;
 
-$VERSION = '0.01';
+$VERSION = '0.02';
 
-use 5.006001;
 use strict;
 use warnings;
 
@@ -243,6 +242,8 @@ sub add_if_then_else
   my $g = $self->{graph};
 
   $if = $self->add_block ($if, $where);
+  
+#  $if->set_attribute('rows',2);
 
   $self->connect($if, $then, 'true');
   $self->connect($if, $else, 'false');
@@ -270,6 +271,9 @@ sub add_for
 
   $init = $self->add_block ($init, $where);
   $while = $self->add_block ($while, $init);
+
+  $while->set_attribute('rows',2);
+
   $self->connect($while, $body, 'true');
 
   $self->connect($body, $cont);

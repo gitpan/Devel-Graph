@@ -1,5 +1,8 @@
 Revision history for Perl extension Devel::Graph.
 
-0.01 2005-11-04 Tels 18 Test
+0.02 2005-11-06 Tels 18 Test
+  * require Graph::Easy 0.32
+
+0.01 2005-11-06 Tels 18 Test
   * first version
 

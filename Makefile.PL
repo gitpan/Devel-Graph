@@ -34,7 +34,8 @@ WriteMakefile(
     NAME		=> 'Devel::Graph',
     VERSION_FROM	=> 'lib/Devel/Graph.pm', # finds $VERSION
     PREREQ_PM		=> {
-	"PPI" => 1.103,
+	PPI => 1.103,
+	'Graph::Easy' => 0.32,
 	},
     ABSTRACT_FROM	=> 'lib/Devel/Graph.pm',
     AUTHOR		=> 'Tels <nospam-abuse@bloodgate.com>',
