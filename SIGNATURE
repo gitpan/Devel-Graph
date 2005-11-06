@@ -1,0 +1,39 @@
+This file contains message digests of all files listed in MANIFEST,
+signed via the Module::Signature module, version 0.42.
+
+To verify the content in this distribution, first make sure you have
+Module::Signature installed, then type:
+
+    % cpansign -v
+
+It will check each file's integrity, as well as the signature's
+validity.  If "==> Signature verified OK! <==" is not displayed,
+the distribution may already have been compromised, and you should
+not run its Makefile.PL or Build.PL.
+
+-----BEGIN PGP SIGNED MESSAGE-----
+
+SHA1 405f61d5b423e4746a2e6d835f07cab077e6add9 CHANGES
+SHA1 02154445bc9831e791c35050f1a018ed99030016 LICENSE
+SHA1 657c2db8041bf77cec4b3ec5e09bd95c1f740825 MANIFEST
+SHA1 bfb3a6581053333ccf25b438576561ecb1cb2641 META.yml
+SHA1 b4439af5ef4595e9e6b75a14df56f3fca2d245f9 Makefile.PL
+SHA1 e6177fec714fa0821dc580d602c1a1d04a07223b README
+SHA1 6618637c47d7901ee1d3bd465d16e72f834dd7b4 examples/test.pl
+SHA1 9977e93783033812ee3fb383134fbce2cf304ec5 lib/Devel/Graph.pm
+SHA1 3574926c4793bdc11feffee4dd211b3f71b393f6 lib/Devel/Graph/Node.pm
+SHA1 788f07d8f121b1b0c97caf53e40a333cc672e5a1 t/graphpm.t
+SHA1 ffcf51dd5c34120c541bedfe936c747c3c3292b1 t/nodepm.t
+SHA1 6d6e35debb38d9c0ea316b7397199c779561f188 t/pod.t
+SHA1 4c89ba997aca2b5b1955e68473e5f4565d86c71f t/pod_cov.t
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v1.2.4 (GNU/Linux)
+
+iQEVAwUBQ24dDXcLPEOTuEwVAQE40wf/UwNY3wGQM0EqOzj8dGImGPJjwMqc+9r2
+FrAZvF6P+xaxNj/N8ASX5DNQPvjlW3r0i/GpHyg5e0yUj+c4lZPL1tsRUlQaBaWd
+vorjY3Zp5+jnmoQde8xEAbdn/Ds39vIZsruEZFnVlqjR4mOX65MsSIaTEqS8qW+H
+J/b4XLIeqvIWYMr7sUKuIvD9adIbpignxHjbi43IrdoKc2bMlCrMSepDchjvciem
+NsAona/utLDZG6v9ytg8lrkyjFPnlkiPf+Ow+D9VWYEzFSehAiWba6drdwmJvPR7
+nRdfGEacmkgz4B6q6+qQB9PJzChzw2hRiKbfMfhbiN1jUg63byyuig==
+=vNro
+-----END PGP SIGNATURE-----
