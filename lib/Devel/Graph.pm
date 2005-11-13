@@ -6,10 +6,13 @@
 
 package Devel::Graph;
 
-$VERSION = '0.02';
+$VERSION = '0.03';
 
 use strict;
 use warnings;
+
+# XXX TODO
+#use PPI;
 
 use Graph::Easy;
 use Devel::Graph::Node qw/
@@ -80,7 +83,8 @@ sub decompose
   my ($self, $code) = @_;
 
   $self->_init();				# clear data
-	
+
+  die ("decompose() not yet implemented. Sorry. Please bug Tels to fix this.");
   $self;
   }
 
@@ -254,6 +258,9 @@ sub add_if_then_else
   $self->{_cur};
   }
 
+#############################################################################
+# for loop
+
 sub add_for
   {
   # add a for (my $i = 0; $i < 12; $i++) style loop
@@ -271,7 +278,9 @@ sub add_for
 
   $init = $self->add_block ($init, $where);
   $while = $self->add_block ($while, $init);
-
+  
+  # Make the for-head node a bigger because it has two edges leaving it, and
+  # one coming back and we want two of them on one side for easier layouts:
   $while->set_attribute('rows',2);
 
   $self->connect($while, $body, 'true');
@@ -288,6 +297,53 @@ sub add_for
   }
 
 #############################################################################
+# while loop
+
+sub add_while
+  {
+  # add a "while ($i < 12) { body } continue { cont }" style loop
+  my ($self, $while, $body, $cont, $where) = @_;
+ 
+  $while = $self->new_block($while, N_IF()) unless ref $while;
+
+  # no body?
+  $body = $self->new_block( '', N_JOINT()) if !defined $body;
+  $body = $self->new_block($body, N_BLOCK()) unless ref $body;
+
+  $cont = $self->new_block($cont, N_CONTINUE()) if defined $cont && !ref $cont;
+
+  # if $while --> body --> cont --> (back to if)
+
+  $where = $self->{_cur} unless defined $where;
+  my $g = $self->{graph};
+
+  $while = $self->add_block ($while, $where);
+  
+  # Make the head node a bigger because it has two edges leaving it, and
+  # one coming back and we want two of them on one side for easier layouts:
+  $while->set_attribute('rows',2);
+
+  $self->connect($while, $body, 'true');
+
+  if (defined $cont)
+    {
+    $cont = $self->add_block ($cont, $body);
+    $self->connect($cont, $while);
+    }
+  else 
+    { 
+    $self->connect($body, $while);
+    }
+
+  my $joint = $self->add_joint();
+  $self->connect($while, $joint, 'false');
+
+  $self->{_cur} = $joint;
+
+  ($joint, $body, $cont);
+  }
+
+#############################################################################
 
 sub finish
   {
@@ -300,8 +356,6 @@ sub finish
   $end = $self->add_block ($end, $where);
  
   $self->{_last} = $end;
-
-  $self;
   }
 
 1;
@@ -326,6 +380,9 @@ object out of these. The resulting object represents the code in a
 flowchart manner and you can turn it into all output formats currently
 supported by Graph::Easy, namely HTML, SVG, ASCII text etc.
 
+B<Note:> The actual decomposing parts are not yet implemented. Currently
+there is only code to assemble the flowchart manually via methods.
+
 X<graph>
 X<Perl>
 X<code>
@@ -334,12 +391,24 @@ X<html>
 X<svg>
 X<flowchart>
 X<diagram>
+X<decompose>
 
 =head1 EXPORT
 
 Exports nothing.
 
 =head1 METHODS
+
+C<graph()> provides a simple function-style interface, while all
+other methods are for an object-oriented model.
+
+All block-inserting routines on the this model will insert the
+block on the given position, or if this is not provided,
+on the current position. After inserting the blocks, the current
+position will be updated.
+
+In addition, the newly inserted block(s) might be merged with
+blocks at the current position.
 
 =head2 graph()
 
@@ -372,6 +441,8 @@ Takes Perl code in $code (as string or code ref) and
 decomposes it into blocks and updates the internal
 structures with a flowchart representing this code.
 
+B<Note:> Not yet implemented.
+
 =head2 as_graph()
 
 	my $graph = $grapher->as_graph();
@@ -400,11 +471,13 @@ last added something via one of the C<add_*> routines.
 
 =head2 finish()
 
-	$grapher->finish( $block );
-	$grapher->finish( );
+	my $last = $grapher->finish( $block );
+	my $last = $grapher->finish( );
 
 Adds an end-block. If no parameter is given, uses the current position,
-otherwise appends the end block to the given C<$block>. See C<current_block>.
+otherwise appends the end block to the given C<$block>. See also
+C<current_block>. Will also update the position of C<last_block> to point
+to the newly added block, and return this block.
 
 =head2 new_block()
 
@@ -424,35 +497,118 @@ The optional C<$where> parameter is the point where the code will be
 inserted. If not specified, it will be appended to the current block,
 see C<current_block>.
 
-Returns the new current block.
+Returns the newly added block as current.
+
+Example:
+
+        +---------+
+    --> | $a = 9; | -->
+        +---------+
 
 =head2 add_if_then()
 
-	my $grapher->add_if_then( $if, $then);
-	my $grapher->add_if_then( $if, $then, $where);
+	my $current = $grapher->add_if_then( $if, $then);
+	my $current = grapher->add_if_then( $if, $then, $where);
 
 Add an if-then branch to the flowchart. The optional C<$where> parameter
 defines at which block to attach the construct.
 
+Returns the new current block, which is a C<joint>.
+
+Example:
+
+                                             false
+          +--------------------------------------------+
+          |                                            v
+        +-------------+  true   +---------+
+    --> | if ($a = 9) | ------> | $b = 1; | ------->   *   -->
+        +-------------+         +---------+
+
 =head2 add_if_then_else()
 
-	my $grapher->add_if_then_else( $if, $then, $else);
-	my $grapher->add_if_then_else( $if, $then, $else, $where);
+	my $current = $grapher->add_if_then_else( $if, $then, $else);
+	my $current = $grapher->add_if_then_else( $if, $then, $else, $where);
 
 Add an if-then-else branch to the flowchart.
 
 The optional C<$where> parameter defines at which block to attach the
 construct.
 
+Returns the new current block, which is a C<joint>.
+
+Example:
+
+        +-------------+
+        |   $b = 2;   | --------------------------+
+        +-------------+                           |
+          ^                                       |
+          | false                                 |
+          |                                       v
+        +-------------+  true   +---------+
+    --> | if ($a = 9) | ------> | $b = 1; | -->   *   -->
+        +-------------+         +---------+
+
 =head2 add_for()
 
-	my $grapher->add_for( $init, $while, $cont, $body);
-	my $grapher->add_for( $init, $while, $cont, $body, $where);
+	my ($current,$body) = $grapher->add_for( $init, $while, $cont, $body);
+	my ($current,$body) = $grapher->add_for( $init, $while, $cont, $body, $where);
 
 Add a C<< for (my $i = 0; $i < 12; $i++) { ... } >> style loop.
 
 The optional C<$where> parameter defines at which block to attach the
 construct.
+
+This routine returns two block positions, the current block (e.g. after
+the loop) and the block of the loop body.
+
+Example:
+
+        +--------------------+  false        
+    --> |   for: $i < 10;    | ------->  *  -->
+        +--------------------+
+          |                ^
+          | true           +----+
+          v                     |
+        +---------------+     +--------+
+        |     $a++;     | --> |  $i++  |
+        +---------------+     +--------+
+
+=head2 add_while
+
+  	my ($current,$body, $cont) = 
+	  $grapher->add_while($while, $body, $cont, $where) = @_;
+
+To skip the continue block, pass C<$cont> as undef.
+
+This routine returns three block positions, the current block (e.g. after
+the loop), the block of the loop body and the continue block.
+
+
+Example of a while loop with only the body (or only the C<continue> block):
+
+
+        +----------------------+  false  
+    --> |   while ($b < 19)    | ------->  *  -->
+        +----------------------+
+          |                  ^
+          | true             |
+          v                  |
+        +-----------------+  |
+        |      $b++;      |--+
+        +-----------------+
+
+Example of a while loop with body and continue block (not similiarity to for
+loop):
+
+        +--------------------+  false        
+    --> | while ($i < 10)    | ------->  *  -->
+        +--------------------+
+          |                ^
+          | true           +----+
+          v                     |
+        +---------------+     +--------+
+        |     $a++;     | --> |  $i++  |
+        +---------------+     +--------+
 
 =head2 add_joint()
 
@@ -463,6 +619,13 @@ connects each block in the given list to that joint. This is used
 f.i. by if-then-else constructs that need a common joint where all
 the branches join together again.
 
+When adding a block right after a joint, they will be merged together
+and the joint will be effectively replaced by the block.
+
+Example:
+
+    -->   *   -->
+
 =head2 merge_blocks()
 
 	$grapher->merge_blocks($first,$second);
@@ -471,6 +634,31 @@ If possible, merge the given two blocks into one block, keeping all connections
 to the first, and all from the second. Any connections between the two
 blocks is dropped.
 
+Example:
+
+                          |
+                          |
+                          v
+        +---------+     +---------+
+    --> | $a = 9; | --> | $b = 2; | -->
+        +---------+     +---------+
+          |
+          |
+          v
+
+This will be turned into:
+
+          |
+          |
+          v
+        +---------+ 
+    --> | $a = 9; | -->
+        | $b = 2; | 
+        +---------+
+          |
+          |
+          v
+
 =head2 connect()
 
 	my $edge = $grapher->connect( $from, $to );
@@ -478,7 +666,7 @@ blocks is dropped.
 
 Connects two blocks with an edge, setting the optional edge label.
 
-Returns the <Graph::Easy::Edge> object.
+Returns the <Graph::Easy::Edge> object for the connection.
  
 =head1 SEE ALSO
 
@@ -497,5 +685,6 @@ X<gpl>
 Copyright (C) 2004-2005 by Tels L<http://bloodgate.com>
 
 X<tels>
+X<bloodgate.com>
 
 =cut

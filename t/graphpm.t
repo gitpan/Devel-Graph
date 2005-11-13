@@ -5,7 +5,7 @@ use strict;
 
 BEGIN
    {
-   plan tests => 10;
+   plan tests => 7;
    chdir 't' if -d 't';
    use lib '../lib';
    use_ok ("Devel::Graph") or die($@);
@@ -28,18 +28,19 @@ can_ok ('Devel::Graph',
     add_if_then
     add_if_then_else
     add_for
+    add_while
   /);
 
 #############################################################################
 # graph() interface
 
-my $graph = Devel::Graph->graph( '$a = 9;' );
-
-is (ref($graph), 'Graph::Easy');
-
-is ($graph->error(), '', 'no error yet');
-
-is ($graph->nodes(), 1, '1 node');
+#my $graph = Devel::Graph->graph( '$a = 9;' );
+#
+#is (ref($graph), 'Graph::Easy');
+#
+#is ($graph->error(), '', 'no error yet');
+#
+#is ($graph->nodes(), 1, '1 node');
 
 #############################################################################
 # OO interface
@@ -57,6 +58,6 @@ is (ref($curr), 'Devel::Graph::Node');
 is ($curr, $last, 'last and curr are the same');
 is ($curr, $first, 'first and curr are the same');
 
-$grapher->decompose( '$a = 9;' );
+#$grapher->decompose( '$a = 9;' );
 
 

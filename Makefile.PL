@@ -1,4 +1,4 @@
-use 5.006001;
+use 5.008000;
 use ExtUtils::MakeMaker;
 use strict;
 
@@ -31,12 +31,13 @@ sub MY::metafile {
 }
 
 WriteMakefile(
-    NAME		=> 'Devel::Graph',
-    VERSION_FROM	=> 'lib/Devel/Graph.pm', # finds $VERSION
-    PREREQ_PM		=> {
-	PPI => 1.103,
-	'Graph::Easy' => 0.32,
+  NAME			=> 'Devel::Graph',
+  VERSION_FROM		=> 'lib/Devel/Graph.pm', # finds $VERSION
+  PREREQ_PM		=> {
+	PPI 	      => 1.104,
+	'Graph::Easy' => 0.33,
 	},
-    ABSTRACT_FROM	=> 'lib/Devel/Graph.pm',
-    AUTHOR		=> 'Tels <nospam-abuse@bloodgate.com>',
+  ABSTRACT_FROM		=> 'lib/Devel/Graph.pm',
+  AUTHOR		=> 'Tels <nospam-abuse@bloodgate.com>',
+  PREREQ_FATAL		=> 1,	# can't work w/o proper prereqs
 );

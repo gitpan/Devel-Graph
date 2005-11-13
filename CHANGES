@@ -1,8 +1,15 @@
 Revision history for Perl extension Devel::Graph.
 
-0.02 2005-11-06 Tels 18 Test
+0.03 2005-11-13 Tels 17 tests
+  * require Graph::Easy v0.33
+  * require PPI v1.04
+  * require Perl v5.8.0
+  * update POD with examples and note that decomposing is not implemented yet
+  * add: add_while()
+
+0.02 2005-11-06 Tels 18 tests
   * require Graph::Easy 0.32
 
-0.01 2005-11-06 Tels 18 Test
+0.01 2005-11-06 Tels 18 tests
   * first version
 
