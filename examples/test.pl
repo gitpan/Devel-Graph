@@ -7,6 +7,8 @@ my $format = shift || 'as_boxart';
 
 my $g = Devel::Graph->new();
 
+my $g = $g->as_flowchart();
+
 $g->add_block ('$a = "9";');
 $g->add_block ('my $b = 1;');
 $g->add_if_then ( 'if ($a == 9)', '$b == 9;' );

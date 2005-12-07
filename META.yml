@@ -1,11 +1,11 @@
 --- #YAML:1.0
 name: Devel-Graph
-version: 0.03
+version: 0.04
 version_from: lib/Devel/Graph.pm
 license: gpl
 distribution_type: module
-generated_by: Devel-Graph version 0.03
+generated_by: Devel-Graph version 0.04
 installdirs: site
 requires:
-  Graph::Easy: 0.33
+  Graph::Flowchart: 0.04
   PPI: 1.104

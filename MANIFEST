@@ -7,8 +7,6 @@ SIGNATURE
 Makefile.PL
 examples/test.pl
 lib/Devel/Graph.pm
-lib/Devel/Graph/Node.pm
 t/graphpm.t
-t/nodepm.t
 t/pod.t
 t/pod_cov.t
