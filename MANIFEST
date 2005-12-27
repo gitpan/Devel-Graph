@@ -4,6 +4,7 @@ MANIFEST
 META.yml
 README
 SIGNATURE
+TODO
 Makefile.PL
 examples/test.pl
 lib/Devel/Graph.pm

@@ -1,0 +1,9 @@
+
+* the following should not have a connection from N_RETURN:
+  if ( $a == 5; ) { return 1; } print $a; 
+
+* handle "$c = 5 if $a == 8;" and "$c = 5 unless $a == 8;"
+  ( no "()" around the condition)
+
+* handle "for (@list)" loops
+

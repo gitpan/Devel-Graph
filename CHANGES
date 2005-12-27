@@ -1,6 +1,15 @@
 Revision history for Perl extension Devel::Graph.
 
-0.04 2005-12-07 Tels 17 tests
+0.05 2005-12-27 Tels 5 tests
+  * require PPI v1.08
+  * require Graph::Flowchart v0.06
+  * implement graph(), decompose()
+  * graph() and decompose() can take code ref or filename
+  * can export graph()
+  * add: reset()
+  * add documentation about customizing the Graph::Easy object
+
+0.04 2005-12-07 Tels 5 tests
   * relocate flowchart code to Graph::Flowchart
 
 0.03 2005-11-13 Tels 17 tests
