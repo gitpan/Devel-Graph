@@ -1,7 +1,7 @@
 #############################################################################
 # Generate flowchart from perl code
 #
-# (c) by Tels 2004-2005.
+# (c) by Tels 2004-2006.
 #############################################################################
 
 package Devel::Graph;
@@ -11,11 +11,11 @@ use Graph::Easy::Base;
 use Graph::Flowchart;
 use Graph::Flowchart::Node qw/
   N_IF N_THEN N_ELSE N_JOINT N_BLOCK
-  N_SUB N_RETURN
+  N_SUB N_RETURN N_CONTINUE
   /;
 require Exporter;
 
-$VERSION = '0.05';
+$VERSION = '0.06';
 @ISA = qw/Graph::Easy::Base Exporter/;
 @EXPORT_OK = qw/graph/;
 
@@ -39,7 +39,8 @@ sub graph
   # decompose code and return as Graph::Easy object
 
   # allow Devel::Graph->graph() calling style
-  my $class = 'Devel::Graph'; $class = shift if @_ == 2;
+  my $class = 'Devel::Graph';
+  $class = shift if @_ == 2; $class = ref($class) if ref($class);
   my $code = shift;
 
   my $self = $class->new();
@@ -74,20 +75,19 @@ sub as_flowchart
   $self->{flow};
   }
 
-sub _croak
-  {
-  require Carp;
-  Carp::croak ($_[1]."\n");
-  }
-
 sub decompose
   {
   my ($self, $code) = @_;
 
   $self->_init();				# clear data
 
-  my $doc = PPI::Document->new($code);
+  $self->_croak("Expected SCALAR ref, but got " . ref($code))
+   if ref($code) && ref($code) ne 'SCALAR';
 
+  $self->_croak("Got filename '$code', but can't read it: $!")
+   if !ref($code) && !-f $code;
+
+  my $doc = PPI::Document->new($code);
 
   $self->_croak ("Couldn't create PPI::Document from $code")
    unless ref($doc);
@@ -161,15 +161,16 @@ sub _find_second
 
 sub _parse_compound
   {
-  my ($self, $element) = @_;
+  my ($self, $element, $type) = @_;
 
-  my $type = $element->type();
+  # work around bug in PPI
+  $type = $element->type() unless defined $type;
 
   $self->_croak("Cannot determine type of compound element $element")
     unless defined $type;
  
   return $self->_parse_loop($element)
-    if $type eq 'for';
+    if $type eq 'for' || $type eq 'foreach';
 
   # ignoring whitespace and comments, find the condition
   my @blocks;
@@ -184,8 +185,8 @@ sub _parse_compound
   return $self->_parse_if(@blocks)
     if $type eq 'if';
 
-  return $self->_parse_while(@blocks)
-    if $type eq 'while';
+  return $self->_parse_while($type, @blocks)
+    if $type =~ /^(until|while)\z/;
   }
 
 sub _parse_if
@@ -291,9 +292,24 @@ sub _parse_sub
 
 sub _parse_while
   {
-  my ($self, $condition, $block) = @_;
+  my ($self, $type, $condition, $body, $continue) = @_;
 
-  $self->_croak('_parse_while not yet implemented, please bug the author to fix this.');
+  my $c = undef; $c = '' if defined $continue;
+  my $flow = $self->{flow};
+  my $method = "add_$type";
+  my ($cur_block,$body_block, $cont_block) = $flow->$method( "$type ".$condition->content(), '', $c );
+
+  # descent into the body block
+  $flow->current($body_block);
+  $self->_parse($body);
+  if (defined $continue)
+    {
+    $flow->current($cont_block);
+    $cont_block->_set_type(N_JOINT());		# so that the parsed blocks get combined
+    $self->_parse($continue);
+    $cont_block->_set_type(N_CONTINUE());	# set right type
+    }
+  $flow->current($cur_block);
   }
 
 sub _parse_loop
@@ -323,25 +339,69 @@ sub _parse_loop
 #        PPI::Token::Operator    '++'
 #        PPI::Token::Structure   ';'
 
+#  PPI::Statement::Compound
+#    PPI::Token::Word    'for'
+#    PPI::Token::Word    'my'
+#    PPI::Token::Symbol          '$i'
+#    PPI::Structure::ForLoop     ( ... )
+#      PPI::Statement
+#        PPI::Token::Symbol      '@list'
+#    PPI::Structure::Block       { ... }
+#      PPI::Statement
+#        PPI::Token::Word        'print'
+#        PPI::Token::Symbol      '$foo'
+
   my $loop = $self->_find_first($element, 'PPI::Structure::ForLoop');
 
-  my @blocks;
+  my (@bodies, @blocks, @var);
+  # get the stuff inside the ()
   foreach my $child (@{$loop->{children}})
     {
     push @blocks, $child->content() if $child->isa('PPI::Statement');
     }
-  my $body = $self->_find_first($element, 'PPI::Structure::Block');
-  push @blocks, '';
-  
-  $blocks[0] = 'for: ' . $blocks[0];
-  $blocks[1] = 'if ' . $blocks[1];
+  # get the body (and continue) block
+  foreach my $child (@{$element->{children}})
+    {
+    push @bodies, $child if $child->isa('PPI::Structure::Block');
+    }
+  # get the variable in front of the () for foreach loops
+  foreach my $child (@{$element->{children}})
+    {
+    push @var, $child->content() if $child->isa('PPI::Token::Word') || $child->isa('PPI::Token::Symbol');
+    }
+  shift @var;	# remove the "for" so that "for my $i" results in "my $i";
 
+  my ($cur_block,$body_block, $cont_block);
   my $flow = $self->{flow};
-  my ($cur_block,$body_block) = $flow->add_for( @blocks );
+  if (@blocks == 1)
+    {
+    # 'for my $var (@list)'
+    my $v = join(" ", @var);
+    $blocks[0] = 'for ' . $v . " ($blocks[0])";
+    push @blocks, '';
+
+    ($cur_block,$body_block, $cont_block) = $flow->add_foreach( @blocks );
+    }
+  else
+    {
+    push @blocks, '';
+    push @blocks, '' if @bodies > 1;	# have a "continue {} " block?
+  
+    $blocks[0] = 'for: ' . $blocks[0];
+    $blocks[1] = 'if ' . $blocks[1];
+
+    ($cur_block,$body_block, $cont_block) = $flow->add_for( @blocks );
+    }
 
   $flow->current($body_block);
-  $self->_parse($body);
+  $self->_parse($bodies[0]);
+  if (@bodies > 1)
+    {
+    $flow->current($cont_block);
+    $self->_parse($bodies[1]);
+    }
   $flow->current($cur_block);
+
   }
 
 sub _parse_conditional
@@ -439,6 +499,17 @@ sub _parse
   return $self->_parse_compound($element)
     if $element->isa('PPI::Statement::Compound');
 
+  ########################################################################
+  ########################################################################
+  # work around bug in PPI not parsing "until" as Compound
+  my $w;
+  $w = $element->first_token() if $element->isa('PPI::Statement'); 
+ 
+  return $self->_parse_compound($element, 'until')
+    if defined $w && $w eq 'until';
+  ########################################################################
+  ########################################################################
+
   # handle sub 
   return $self->_parse_sub($element)
     if $element->isa('PPI::Statement::Sub');
@@ -487,20 +558,17 @@ Devel::Graph - Turn Perl code into a Graph::Flowchart object
 =head1 DESCRIPTION
 
 This module decomposes Perl code into blocks and generates a
-C<Graph::Flowchart> object out of these. The resulting object represents the
-code in a flowchart manner and it can return you a Graph::Easy object.
+L<Graph::Flowchart> object out of these. The resulting object represents the
+code in a flowchart manner and it can return you a L<Graph::Easy> object.
 
 This in turn can be converted it into all output formats currently
-supported by C<Graph::Easy>, namely HTML, SVG, ASCII text etc.
+supported by C<Graph::Easy>, namely HTML, SVG, ASCII art, Unicode art,
+graphviz text etc.
 
 =head2 Parsing
 
-The parsing is done by C<PPI>, so everything that is supported
+The parsing is done by L<PPI>, so everything that is supported
 properly by PPI should work.
-
-Note: Not all Perl constructs are implemented yet, especially loops,
-and more strange features like C<<$a = 9 if $b == 9>> (no C< () > around
-the condition) are buggy and/or incomplete.
 
 X<graph>
 X<Perl>
@@ -546,12 +614,13 @@ other methods are for an object-oriented model.
 	my $graph = Devel::Graph->graph( \$code );
 	my $graph = Devel::Graph->graph( $filename );
 
-Takes Perl code in $code (as string or code ref) and returns a flowchart
+Takes Perl code in $code (as SCALAR ref or scalar filename) and returns a flowchart
 as C<Graph::Easy> object.
 
 This is a shortcut to avoid the OO interface described below and will
 be equivalent to:
 
+	my $code = \'$a = 9;';
 	my $flow = Devel::Graph->new();
 	$flow->decompose( $code );
 	$flow->finish( $code );
@@ -571,7 +640,7 @@ Creates a new C<Devel::Graph> object.
 	$flow->decompose( \$code );		# \'$a = 1;'
 	$flow->decompose( $filename );		# 'lib/Package.pm'
 
-Takes Perl code (code ref in C<$code>) or Perl file (filename in C<$code>) and 
+Takes Perl code (scalar ref in C<$code>) or Perl file (filename in C<$code>) and 
 decomposes it into blocks and updates the internal structures with a flowchart
 representing this code.
 
@@ -610,6 +679,14 @@ C<$grapher->as_graph->as_ascii()>.
 
 Return the internal data structure as C<Graph::Flowchart> object.
 
+=head1 BUGS
+
+Not all Perl constructs are implemented yet, especially the more esoteric
+Perl constructs.
+
+Also, things like C<<$a = 9 if $b == 9>> (no C< () > around
+the condition) are buggy and/or incomplete.
+
 =head1 SEE ALSO
 
 L<Graph::Easy>, L<Graph::Flowchart>, L<PPI>.
@@ -624,7 +701,7 @@ X<gpl>
 
 =head1 AUTHOR
 
-Copyright (C) 2004-2005 by Tels L<http://bloodgate.com>
+Copyright (C) 2004-2006 by Tels L<http://bloodgate.com>
 
 X<tels>
 X<bloodgate.com>

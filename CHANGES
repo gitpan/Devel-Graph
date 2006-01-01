@@ -1,5 +1,13 @@
 Revision history for Perl extension Devel::Graph.
 
+0.06 2006-01-01 Tels 15 tests
+  * require PPI v1.09
+  * require Graph::Flowchart v0.07
+  * check argument to decompose() and croak on errors
+  * allow $graph->graph($code); calling style
+  * added "while" and until" loop support (both w/ and w/o continue blocks)
+  * support: "for (@list) { ... } continue { ... }"
+ 
 0.05 2005-12-27 Tels 5 tests
   * require PPI v1.08
   * require Graph::Flowchart v0.06

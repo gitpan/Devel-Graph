@@ -6,8 +6,9 @@ README
 SIGNATURE
 TODO
 Makefile.PL
-examples/test.pl
+examples/chart
 lib/Devel/Graph.pm
 t/graphpm.t
+t/croak.t
 t/pod.t
 t/pod_cov.t

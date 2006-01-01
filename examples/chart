@@ -5,13 +5,18 @@ use Devel::Graph;
 
 my $code = shift || 'examples/test.pl';
 my $format = shift || 'as_ascii';
+my $debug = shift;
 
 my $a = $code;
 $a = \$code unless -f $code;		# code or file?
 
-my $gr = Devel::Graph->graph($a);
+if ($debug)
+  {
+  require PPI::Dumper;
+  PPI::Dumper->new(PPI::Document->new($a), whitespace => 0)->print();
+  }
 
-#use PPI::Dumper; PPI::Dumper->new(PPI::Document->new($a), whitespace => 0)->print();
+my $gr = Devel::Graph->graph($a);
 
 print STDERR "Resulting graph has ", 
 	scalar $gr->nodes(), " nodes and ", 
