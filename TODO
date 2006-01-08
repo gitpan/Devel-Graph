@@ -1,4 +1,6 @@
 
+* add tests checking the outputs in t/data
+
 * the following should not have a connection from N_RETURN:
   if ( $a == 5 ) { return 1; } print $a; 
 
@@ -6,6 +8,8 @@
   ( no "()" around the condition)
 
 * handle do { ... } until/while ();
+
+* handle if-then-else
 
 * $a++ until $a > 9;
 

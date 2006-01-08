@@ -1,5 +1,24 @@
 Revision history for Perl extension Devel::Graph.
 
+0.07 2006-01-08 Tels 16 tests
+  * work around bug in PPI returning type() 'if' for 'unless'
+  * combine the _parse_unless() and _parse_if() functions, removing
+    duplicate code
+  * an additional 'word' (like print) on conditional statements would
+    confuse the code. Now the following constructs work:
+	print $foo if ($a == 0);
+	print $foo unless ($a == 0);
+	print $foo while ($a == 0);
+	print $foo until ($a == 0);
+  * normalize output on trailing conditionals to not contain a ";":
+ 	"$a++ if ($a == 0);" versus "$a++ if ($a == 0)"
+  * fix _parse_break() to work
+  * add option()
+  * add the option 'strip_pod' to new, default it to yes, strip pod if true
+  * don't use the convience methods from Graph::Flowchart, but construct
+    nested blocks manually - this makes things recursively work, like
+    an if-statement inside a for-loop-body etc.
+
 0.06 2006-01-01 Tels 15 tests
   * require PPI v1.09
   * require Graph::Flowchart v0.07

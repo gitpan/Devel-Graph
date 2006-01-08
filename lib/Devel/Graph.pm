@@ -10,12 +10,22 @@ use Graph::Easy;
 use Graph::Easy::Base;
 use Graph::Flowchart;
 use Graph::Flowchart::Node qw/
-  N_IF N_THEN N_ELSE N_JOINT N_BLOCK
-  N_SUB N_RETURN N_CONTINUE
+  N_IF N_THEN N_ELSE N_JOINT N_BLOCK N_BODY
+  N_FOR
+  N_SUB 
+  N_RETURN
+  N_BREAK
+  N_LAST
+  N_GOTO
+  N_CONTINUE
+  N_NEXT
+  N_WHILE
+  N_UNTIL
   /;
 require Exporter;
 
-$VERSION = '0.06';
+$VERSION = '0.07';
+
 @ISA = qw/Graph::Easy::Base Exporter/;
 @EXPORT_OK = qw/graph/;
 
@@ -29,9 +39,22 @@ sub _init
   {
   my ($self, $args) = @_;
 
+  $self->{options} = {};
+
+  $self->{opt}->{strip_pod} = 1;
+  $self->{opt}->{strip_pod} = ($args->{strip_pod} ? 1 : 0)
+    if defined $args->{strip_pod};
+
   $self->reset();
 
   $self;
+  }
+
+sub option
+  {
+  my $self = shift;
+
+  $self->{opt}->{$_[0]};
   }
 
 sub graph
@@ -92,6 +115,8 @@ sub decompose
   $self->_croak ("Couldn't create PPI::Document from $code")
    unless ref($doc);
 
+  $doc->prune('PPI::Token::Pod') if $self->{opt}->{strip_pod};
+
   $self->_parse($doc);
 
   $self;
@@ -145,6 +170,8 @@ sub _find_second
   my $self = shift;
   my $element = shift;
 
+  $self->_croak("Got non-object as element: $element") unless ref $element;
+
   my @blocks;
   for my $child (@{$element->{children}})
     {
@@ -158,6 +185,23 @@ sub _find_second
   $self->_croak ("Couldn't find second children of " .
     ref($element) . " of types: " . join(", ",@_)." ");   
   }
+
+sub _find_on_stack
+  {
+  my ($self, $type) = @_;
+
+  my $stack = $self->{stack};
+
+  for my $e (@$stack)
+    {
+    return $e if $e->{_type} == $type;
+    }
+
+  $self->_croak("Couldn't find type $type on stack");
+  }
+
+#############################################################################
+#############################################################################
 
 sub _parse_compound
   {
@@ -181,80 +225,59 @@ sub _parse_compound
       $child->isa('PPI::Structure::Condition') ||      
       $child->isa('PPI::Structure::Block');
     }
-   
-  return $self->_parse_if(@blocks)
-    if $type eq 'if';
+
+  ########################################################################
+  ########################################################################
+  # work around bug in PPI for "unless" having type() return 'if'
+  if ($type eq 'if')
+    {
+    my $c = $element->find_first('PPI::Token::Word');
+    $type = 'unless' if $c eq 'unless';
+    }
+  ########################################################################
+  ########################################################################
+
+  return $self->_parse_if($type, @blocks)
+    if $type =~ /^(if|unless)\z/;
 
   return $self->_parse_while($type, @blocks)
     if $type =~ /^(until|while)\z/;
+
+  $self->_croak("Unknown conditional type $type");
   }
 
 sub _parse_if
   {
-  my ($self, $condition, $block) = @_;
+  my ($self, $type, $condition, $block) = @_;
+
+  $self->_croak('Undefined block in if expression') unless defined $block;
 
   my $flow = $self->{flow};
 
   # cur => if => then => joint
   #        |--------------^
   
-  my $if = $flow->new_block( 'if ' . $condition->content(), N_IF());
-  $if = $flow->add_block($if);
+  my $if = $flow->add_new_block('if ' . $condition->content(), N_IF());
+
+  my @edges = ('true','false');
+  @edges = ('false','true') if $type eq 'unless';
 
   # cur => if => then
-  my $then = $flow->add_joint(); $flow->connect($if,$then,'true');
+  my $then = $flow->add_joint(); $flow->connect($if,$then,$edges[0]);
   $flow->current_block($then);
 
   # fill in the "then" block
   $self->_parse($block);
 
+  # add a dummy-joint
+  my $else = $flow->add_new_joint();
+ 
+  # connect the "if" block with the newly added joint
   # cur => if => then => joint
   #        ----false--------^
 
-  my $else = $flow->add_new_joint();
-  $flow->connect($if,$else,'false');
+  $flow->connect($if,$else,$edges[1]);
   $flow->current($else);
-  }
-
-sub _parse_unless
-  {
-  my ($self, $condition, $block) = @_;
-
-  my $flow = $self->{flow};
-
-  # cur => if => then => joint
-  #        |--------------^
-  
-  my $if = $flow->new_block( 'if (! ' . $condition->content() . ' )', N_IF());
-  $if = $flow->add_block($if);
-
-  # cur => if => then
-  my $then = $flow->add_joint(); $flow->connect($if,$then,'true');
-  $flow->current_block($then);
-
-  # fill in the "then" block
-  $self->_parse($block);
-
-  # cur => if => then => joint
-  #        ----false--------^
-
-  my $else = $flow->add_new_joint();
-  $flow->connect($if,$else,'false');
-  $flow->current($else);
-  }
-
-sub _find_on_stack
-  {
-  my ($self, $type) = @_;
-
-  my $stack = $self->{stack};
-
-  for my $e (@$stack)
-    {
-    return $e if $e->{_type} == $type;
-    }
-
-  $self->_croak("Couldn't find type $type on stack");
   }
 
 sub _parse_sub
@@ -278,10 +301,7 @@ sub _parse_sub
   # whitespace and comments and Null (";")
   foreach my $child (@{$sub->{children}})
     {
-    $self->_parse($child)
-      unless $child->isa('PPI::Token::Whitespace') ||
-             $child->isa('PPI::Token::Comment') ||
-             $child->isa('PPI::Statement::Null');
+    $self->_parse($child) if $child->significant();
     }
 
   # continue at pos before sub
@@ -292,24 +312,42 @@ sub _parse_sub
 
 sub _parse_while
   {
+  # addd while() or until() loops
   my ($self, $type, $condition, $body, $continue) = @_;
 
-  my $c = undef; $c = '' if defined $continue;
-  my $flow = $self->{flow};
-  my $method = "add_$type";
-  my ($cur_block,$body_block, $cont_block) = $flow->$method( "$type ".$condition->content(), '', $c );
+  #  |----------- false ------------v
+  # while () -- true --> body -> continue    * 
+  #  ^----------------------------|
 
-  # descent into the body block
+  my $flow = $self->{flow};
+  my $t = N_WHILE; $t = N_UNTIL if $type eq 'until';
+  my @edges = ('true','false');
+  @edges = ('false','true') if $type eq 'until';
+
+  my $while = $flow->add_new_block( "$type $condition", $t);
+  my $body_block = $flow->add_joint();
+
+  # -- true -->
+  $flow->connect($while,$body_block, $edges[0]);
   $flow->current($body_block);
+
+  # insert the body
   $self->_parse($body);
+
   if (defined $continue)
     {
-    $flow->current($cont_block);
-    $cont_block->_set_type(N_JOINT());		# so that the parsed blocks get combined
+    # connect the body to the continue block
+    my $cont_block = $flow->add_new_joint();
     $self->_parse($continue);
-    $cont_block->_set_type(N_CONTINUE());	# set right type
     }
-  $flow->current($cur_block);
+
+  # connect body (or continue) back to while
+  $flow->connect($flow->current(), $while);
+
+  # connect body to next
+  my $next = $flow->add_joint();
+  $flow->connect($while, $next, $edges[1]);
+  $flow->current($next);
   }
 
 sub _parse_loop
@@ -357,7 +395,7 @@ sub _parse_loop
   # get the stuff inside the ()
   foreach my $child (@{$loop->{children}})
     {
-    push @blocks, $child->content() if $child->isa('PPI::Statement');
+    push @blocks, $child if $child->isa('PPI::Statement');
     }
   # get the body (and continue) block
   foreach my $child (@{$element->{children}})
@@ -371,42 +409,96 @@ sub _parse_loop
     }
   shift @var;	# remove the "for" so that "for my $i" results in "my $i";
 
-  my ($cur_block,$body_block, $cont_block);
   my $flow = $self->{flow};
   if (@blocks == 1)
     {
     # 'for my $var (@list)'
+
     my $v = join(" ", @var);
     $blocks[0] = 'for ' . $v . " ($blocks[0])";
     push @blocks, '';
 
-    ($cur_block,$body_block, $cont_block) = $flow->add_foreach( @blocks );
+    #  |-----last------v
+    # for ---> body    *
+    #  ^--------|
+    
+    # XXX TODO: 
+    # technically, we need to parse $blocks[0]!
+
+    my $for_block = $flow->add_new_block($blocks[0], N_FOR());
+    my $body_block = $flow->add_new_joint();
+
+    # insert the '*' for "next"
+    my $next = $flow->add_joint();
+
+    # insert the body
+    $self->_parse($bodies[0]);
+
+    # connect the body back to the for
+    my $cur = $flow->current();
+    if ($cur->{_type} == N_JOINT)
+      {
+      # XXX TODO: if current is a joint, eliminate it
+      # move all incoming edges to point directly to 'for'
+
+      $flow->connect($cur, $for_block, 'next');
+      }
+    else
+      {
+      $flow->connect($cur, $for_block, 'next');
+      }
+
+    my $last = $flow->connect($for_block, $next, 'last');
+    $last->set_attribute('flow','forward');
+   
+    $flow->current($next);
+
+    return;
     }
-  else
-    {
-    push @blocks, '';
-    push @blocks, '' if @bodies > 1;	# have a "continue {} " block?
+
+  # init -> if $while --> body --> cont --> (back to if)
+
+  # XXX TODO: 
+  # technically, we need to parse $blocks[x]!
+
+  my $next = $flow->add_joint();
+  my $for_block = $flow->add_new_block('for: ' . $blocks[0], N_FOR());
+  my $while_block = $flow->add_new_block('while ' . $blocks[1], N_WHILE());
   
-    $blocks[0] = 'for: ' . $blocks[0];
-    $blocks[1] = 'if ' . $blocks[1];
+  my $body_block = $flow->add_joint();
 
-    ($cur_block,$body_block, $cont_block) = $flow->add_for( @blocks );
-    }
+  $flow->connect($while_block, $body_block, 'true');
 
+  # insert the body
   $flow->current($body_block);
   $self->_parse($bodies[0]);
-  if (@bodies > 1)
-    {
-    $flow->current($cont_block);
-    $self->_parse($bodies[1]);
-    }
-  $flow->current($cur_block);
 
+  my $cur = $flow->current();
+  my $cont_block = $flow->add_new_block($blocks[2], N_BLOCK());
+
+  my $false = $flow->connect($while_block, $next, 'false');
+  $false->set_attribute('flow','forward');
+
+  $flow->connect($cont_block, $while_block, 'continue');
+
+  $flow->current($next);
   }
 
 sub _parse_conditional
   {
+  # parse a statement with a trailing condition/loop
   my ($self, $element) = @_;
+
+# PPI::Statement
+#    PPI::Token::Word    'print'
+#    PPI::Token::Symbol          '$a'
+#    PPI::Token::Operator        '++'
+#    PPI::Token::Word    'if'				<-- type
+#    PPI::Structure::Condition   ( ... )		<-- condition start
+#      PPI::Statement::Expression
+#        PPI::Token::Symbol      '$a'
+#        PPI::Token::Operator    '<'
+#        PPI::Token::Number      '9'
   
   # gather all elements up to the condition
   my @blocks;
@@ -419,36 +511,47 @@ sub _parse_conditional
     push @blocks, $child;
     }
 
-  my $type = pop @blocks;
+  my $type = pop @blocks;			# if, unless etc
+
+  # make a copy and delete the condition and the word before it
+  # to get only the block of the condition:
 
   my $block = $element->clone();
-  # delete the condition
   my $c = $block->find_first('PPI::Structure::Condition');
+  my $t = $c->sprevious_sibling();
   $c->delete();
-
-  # and delete the word ('if', 'unless' etc) immidiately before it
-  $c = $block->find_first('PPI::Token::Word');
-  $c->delete();
+  $t->delete();
 
   # delete trailing whitespace in $block (so that "$c = 123 ;" turns in "$c = 123;"
   for my $child (reverse @{$block->{children}})
     {
+    # remove the trailing ";" because otherwise:
+    # "print $a++ if (...)" would turn into 		"print $a++"
+    # while "print $a++ if (...);" would turn into 	"print $a++;"
+
     # stop at the first significant child other than the ";"
-    next if $child->isa('PPI::Token::Structure');
+    $child->delete() && next if $child->isa('PPI::Token::Structure') && $child eq ';';
     last if $child->significant(); 
     $child->delete();
     }
-#  print " after delete: $block\n";
 
-  if ($type eq 'if')
-    {
-    return $self->_parse_if($condition, $block);
-    }
-  elsif ($type eq 'unless')
-    {
-    return $self->_parse_unless($condition, $block);
-    }
+  return $self->_parse_if($type, $condition, $block)
+    if $type =~ /^(if|unless)\z/;
+
+  return $self->_parse_while($type, $condition, $block)
+    if $type =~ /^(until|while)\z/;
+
+  $self->_croak("Unknown conditional type $type");
   }
+
+my $types = {
+  'return' => N_RETURN(),
+  'last' => N_LAST(),
+  'break' => N_BREAK(),
+  'continue' => N_CONTINUE(),
+  'goto' => N_GOTO(),
+  'next' => N_NEXT(),
+  };
 
 sub _parse_break
   {
@@ -462,9 +565,16 @@ sub _parse_break
   my $target;
   if ($type ne 'return')
     {
+    my $t = $types->{"$type"};
+    $self->_croak("Unrecognized break type $type") unless defined $t;
+
     # ignore first Token::Word
-    $target = $self->_find_second('PPI::Token::Word');
-    $flow->add_jump($element->content(), $type->content(), '', $target);
+    $target = $self->_find_second($element, 'PPI::Token::Word');
+    $flow->add_jump(
+	$element->content(),		# "last FOO;"
+	$t, 				# N_BREAK etc
+	'',
+	$target->content());		# "FOO"
     }
   else
     {
@@ -480,7 +590,7 @@ sub _parse_expression
 
   my $flow = $self->{flow};
 
-  $flow->add_block($element->content());
+  $flow->add_new_block( $element->content(), N_BLOCK());
   }
 
 #############################################################################
@@ -493,7 +603,10 @@ sub _parse
   no warnings 'recursion';
   my ($self, $element) = @_;
 
-#  print STDERR "parsing ", ref($element),"\n";
+#  print STDERR "parsing ", ref($element)," ($element)\n";
+
+  $self->_croak('Encountered an undefined element while parsing')
+    unless defined $element;
 
   # handle if, while, for
   return $self->_parse_compound($element)
@@ -525,7 +638,7 @@ sub _parse
   # "$a == 1"
   # "use strict;"
   return $self->_parse_expression($element)
-    if (($element->isa('PPI::Statement')));#   ||
+    if ( $element->isa('PPI::Statement')   );
 #        ($element->isa('PPI::Statement::Expression')) ||
 #        ($element->isa('PPI::Statement::Include'))    );
 
@@ -615,7 +728,7 @@ other methods are for an object-oriented model.
 	my $graph = Devel::Graph->graph( $filename );
 
 Takes Perl code in $code (as SCALAR ref or scalar filename) and returns a flowchart
-as C<Graph::Easy> object.
+as C<Graph::Easy> object. It will strip all POD before composing the flowchart.
 
 This is a shortcut to avoid the OO interface described below and will
 be equivalent to:
@@ -631,9 +744,24 @@ returned object.
 
 =head2 new()
 
-	my $flow = Devel::Graph->new();
+	my $flow = Devel::Graph->new( $options );
+	my $flow_2 = Devel::Graph->new( { strip_pod => 0 } );
 
 Creates a new C<Devel::Graph> object.
+
+The optional C<$options> is a hash reference with parameters. The following
+arguments are valid:
+
+	strip_pod	Strip all POD before doing the graph. Defaults to true.
+			POD sections are usually very large, resulting in huge
+			nodes, that can, f.i. crash graphviz or result in
+			poor output quality.
+
+=head2 option()
+
+	my $option = $flow->option($name);
+
+Return the option with the given name from the Devel::Graph object.
 
 =head2 decompose()
 

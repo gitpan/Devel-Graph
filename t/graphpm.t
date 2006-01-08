@@ -5,7 +5,7 @@ use strict;
 
 BEGIN
    {
-   plan tests => 8;
+   plan tests => 9;
    chdir 't' if -d 't';
    use lib '../lib';
    use_ok ("Devel::Graph") or die($@);
@@ -19,6 +19,10 @@ can_ok ('Devel::Graph',
     graph
     decompose
     reset
+    option
+    as_ascii
+    as_graph
+    as_flowchart
   /);
 
 #############################################################################
@@ -37,6 +41,8 @@ is ($graph->nodes(), 3, '3 nodes');
 my $grapher = Devel::Graph->new();
 
 is (ref($grapher), 'Devel::Graph');
+
+is ($grapher->option('strip_pod'), 1, 'strip_pod is the default');
 
 $graph = $grapher->graph( \'$a = 9;' );
 

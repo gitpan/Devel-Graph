@@ -12,3 +12,13 @@ t/graphpm.t
 t/croak.t
 t/pod.t
 t/pod_cov.t
+t/data/00_00_if.txt
+t/data/00_01_if.txt
+t/data/01_00_unless.txt
+t/data/01_01_unless.txt
+t/data/02_00_while.txt
+t/data/02_01_while.txt
+t/data/03_00_until.txt
+t/data/03_01_until.txt
+t/data/03_02_until.txt
+t/data/03_03_until.txt
