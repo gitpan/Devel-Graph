@@ -1,5 +1,9 @@
 Revision history for Perl extension Devel::Graph.
 
+0.08 2006-01-09 Tels 16 tests
+  * fix Makefile.PL to work with newer YAML
+  * require Graph::Flowchart v0.09
+
 0.07 2006-01-08 Tels 16 tests
   * work around bug in PPI returning type() 'if' for 'unless'
   * combine the _parse_unless() and _parse_if() functions, removing

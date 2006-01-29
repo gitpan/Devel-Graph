@@ -11,7 +11,8 @@ sub MY::metafile {
     return $self->SUPER::metafile_target(@_);
   };
 
-  my $node = new YAML::Node {};
+  require YAML::Node;
+  my $node = YAML::Node->new({});
 
   $node->{name}                 = $self->{DISTNAME};
   $node->{version}              = $self->{VERSION};
@@ -35,7 +36,7 @@ WriteMakefile(
   VERSION_FROM		=> 'lib/Devel/Graph.pm', # finds $VERSION
   PREREQ_PM		=> {
 	PPI 	      => 1.109,
-	'Graph::Flowchart' => 0.07,
+	'Graph::Flowchart' => 0.09,
 	},
   ABSTRACT_FROM		=> 'lib/Devel/Graph.pm',
   AUTHOR		=> 'Tels <nospam-abuse@bloodgate.com>',

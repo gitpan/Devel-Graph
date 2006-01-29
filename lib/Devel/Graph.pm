@@ -24,7 +24,7 @@ use Graph::Flowchart::Node qw/
   /;
 require Exporter;
 
-$VERSION = '0.07';
+$VERSION = '0.08';
 
 @ISA = qw/Graph::Easy::Base Exporter/;
 @EXPORT_OK = qw/graph/;
