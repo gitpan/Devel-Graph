@@ -1,11 +1,19 @@
----
-name: Devel-Graph
-version: 0.08
-version_from: lib/Devel/Graph.pm
-license: gpl
+abstract: Turn Perl code into a graphical flowchart
+author: Tels <nospam-abuse@bloodgate.com>
+build_requires: 
+  Test::Differences: 0.47
+  Test::More: 0.42
 distribution_type: module
-generated_by: Devel-Graph version 0.08
-installdirs: site
-requires:
-  Graph::Flowchart: 0.09
-  PPI: 1.109
+generated_by: Module::Install version 0.64
+license: gpl
+name: Devel-Graph
+no_index: 
+  directory: 
+    - examples
+    - inc
+    - t
+requires: 
+  Graph::Flowchart: 0.1
+  PPI: 1.118
+  Scalar::Util: 1.13
+version: 0.10

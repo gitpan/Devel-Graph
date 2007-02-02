@@ -1,44 +1,33 @@
-use 5.008000;
-use ExtUtils::MakeMaker;
+# We need at least Perl 5.8.1 for proper Unicode support
+require 5.8.1;
 use strict;
 
-sub MY::metafile {
-  package MY;
-  my $self = shift;
-  if (!eval { require YAML; 1 })
-  {
-    warn ("YAML not installed, 'make dist' will not override 'META.yml'.");
-    return $self->SUPER::metafile_target(@_);
-  };
+# Load the Module::Install bundled in ./inc/
+use inc::Module::Install;
 
-  require YAML::Node;
-  my $node = YAML::Node->new({});
+# The name of your distribution
+name		'Devel-Graph';
 
-  $node->{name}                 = $self->{DISTNAME};
-  $node->{version}              = $self->{VERSION};
-  $node->{version_from}         = $self->{VERSION_FROM};
-  $node->{license}              = 'gpl';
-  $node->{distribution_type}    = 'module';
-  $node->{generated_by}         = "$self->{DISTNAME} version $self->{VERSION}";
-  $node->{installdirs}          = 'site';
-  $node->{requires}             = $self->{PREREQ_PM};
+# Get most of the details from the primary module
+all_from	'lib/Devel/Graph.pm';
 
-  my $dump = YAML::Dump( $node );
+requires	'Scalar::Util'		=> 1.13,
+		'PPI'			=> 1.118,
+		'Graph::Flowchart'	=> 0.10;
+		'Graph::Easy'		=> 0.52;
 
-  $dump =~ s/^(.*)$/\t\$(NOECHO) \$(ECHO) "$1" >>META.yml/gm;
-  $dump =~ s/>>META\.yml/>META.yml/;
+build_requires  'Test::More'		=> 0.42,
+		'Test::Differences'	=> 0.47;
 
-  return "metafile:\n$dump";
-}
+license		'gpl';
 
-WriteMakefile(
-  NAME			=> 'Devel::Graph',
-  VERSION_FROM		=> 'lib/Devel/Graph.pm', # finds $VERSION
-  PREREQ_PM		=> {
-	PPI 	      => 1.109,
-	'Graph::Flowchart' => 0.09,
-	},
-  ABSTRACT_FROM		=> 'lib/Devel/Graph.pm',
-  AUTHOR		=> 'Tels <nospam-abuse@bloodgate.com>',
-  PREREQ_FATAL		=> 1,	# can't work w/o proper prereqs
-);
+author		'Tels <nospam-abuse@bloodgate.com>';
+
+# Do not index these
+no_index	directory	=>	'examples';
+
+# Auto-install all dependencies from CPAN
+auto_install;
+
+# Generate the Makefile
+WriteAll;

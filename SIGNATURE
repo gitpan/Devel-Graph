@@ -1,5 +1,5 @@
 This file contains message digests of all files listed in MANIFEST,
-signed via the Module::Signature module, version 0.42.
+signed via the Module::Signature module, version 0.54.
 
 To verify the content in this distribution, first make sure you have
 Module::Signature installed, then type:
@@ -12,38 +12,59 @@ the distribution may already have been compromised, and you should
 not run its Makefile.PL or Build.PL.
 
 -----BEGIN PGP SIGNED MESSAGE-----
+Hash: SHA1
 
-SHA1 be2507fbaa992e5aa04ee1dd6a6fae9707ad8d33 CHANGES
+SHA1 38dd40d4fe9a8a408648f2f2c1a2a3ac76bbac72 Build.PL
+SHA1 d830e1c3f0eb62a3b9a05ee39cef1eb411f81607 CHANGES
 SHA1 02154445bc9831e791c35050f1a018ed99030016 LICENSE
-SHA1 7b71f1937741ba2fbe2ed06c1d7cd5d4ae4ad926 MANIFEST
-SHA1 af912c5faa98a28621bc5e5d2cf5df7e4f7a1530 META.yml
-SHA1 7c0f5a5d1ff2f35edab106dd5b8befd688c9ed71 Makefile.PL
+SHA1 c15f83516458db9c473d9de14a8380c1b1b45750 MANIFEST
+SHA1 402f98488ecf476af86a6fa0a7d55ee31245ff0b META.yml
+SHA1 82b9af92e51c027603cecbaedec91e2dc575c792 Makefile.PL
 SHA1 8a76ee8846378e727f2b27656550aa4cd9f2cac9 README
-SHA1 f5b9b3c67372f567fc1f16eb86ce5b9375d882b5 TODO
-SHA1 7c3b1b0f4ce8d6d93c2030295fe6892019a6ac7c examples/chart
-SHA1 796801f5b456a4d16509b18fdf939b811eed18e3 lib/Devel/Graph.pm
+SHA1 a4fcf0fc6a485f15814c9c0855e3be55808f7e5f TODO
+SHA1 414f218461ba808184dc64d94614e2f72d331dae examples/chart
+SHA1 603bb9de29fb8cba7f13409c546750972eff645d inc/Module/AutoInstall.pm
+SHA1 9b2f9d83bcf77860f53a0c07c90a4a59ad9f5df1 inc/Module/Install.pm
+SHA1 ad955f51ad2c40d4ba35395c27f5ed899a80bf7a inc/Module/Install/AutoInstall.pm
+SHA1 abe32855d75ab13747cf65765af9947b7a8c3057 inc/Module/Install/Base.pm
+SHA1 da9dfbb8ae4a8a8bac0ab9cd7ef7dc89e4cb5dbe inc/Module/Install/Build.pm
+SHA1 95b81d1e91bd634467bf633571eff4420e9c04eb inc/Module/Install/Can.pm
+SHA1 1fe98c63cf9d7271c8cb4183ba230f152df69e26 inc/Module/Install/Fetch.pm
+SHA1 0606a8b02a420600bc3e2b65ab82f70266784926 inc/Module/Install/Include.pm
+SHA1 2249171a2b72cd73ff2c0a06597d29f86e5df456 inc/Module/Install/Makefile.pm
+SHA1 381bb98ea3877bba49ae85e7a7ea130645fd3dbf inc/Module/Install/Metadata.pm
+SHA1 0c2118868ef82ac517eb6d9c3bd93e6eb9bbf83e inc/Module/Install/Win32.pm
+SHA1 e827d6d43771032fa3df35c0ad5e5698d0e54cda inc/Module/Install/WriteAll.pm
+SHA1 3279e75d847dbb5f04823222f3c4c56706a37fc0 lib/Devel/Graph.pm
 SHA1 ad8def85adca2cc31260ff842337520d481b60a7 t/croak.t
-SHA1 d79de5008f6b7a4a8c71e2982b85ada6106dd94f t/data/00_00_if.txt
-SHA1 e1b3bd0cedf45b8e6581b741ff0270844ebf6982 t/data/00_01_if.txt
-SHA1 7eb3745a7116d9151a9f63bb0aec346ce6236c2e t/data/01_00_unless.txt
-SHA1 6c2bee5b865e728cd153972d603d5e1fd5c86713 t/data/01_01_unless.txt
+SHA1 904a74eca44ce4f61244eaea74d528c95f7bd595 t/data/00_00_if.txt
+SHA1 6c73955e5f1b8b9543f893e264378ceaa66c7d83 t/data/00_01_if.txt
+SHA1 1b1f314d13f9550ee675c4f846b8b122f19b22c9 t/data/00_02_if.txt
+SHA1 aa27db923f69b5f6c6af55ffd746cf338ce04d42 t/data/00_03_if.txt
+SHA1 3da3d20e104efe5d0502f6322528a52e22632cad t/data/00_04_if.txt
+SHA1 c85c68d38ad72278250476dbfda587d9d4c092c7 t/data/01_00_unless.txt
+SHA1 40401de972deee99a47e339647459699f376ca6d t/data/01_01_unless.txt
+SHA1 ab83492128c878587ef085364d94dd6d656ff21b t/data/01_02_unless.txt
+SHA1 89c5a1131df084ea66971b52bf0cc9424ccf3b24 t/data/01_03_unless.txt
 SHA1 a950c895328895f44113e354272d6dba82efbf39 t/data/02_00_while.txt
 SHA1 2b1bb4918e4c6265caf162cc9362b815c958b51c t/data/02_01_while.txt
 SHA1 fc6588210387d9e35f1529ec405f3de84355bd1d t/data/03_00_until.txt
 SHA1 a34e533314950d5d61515d8c7b29f42cbfedd7e5 t/data/03_01_until.txt
-SHA1 650d49bc9941229bd118d848b23084beb85e3339 t/data/03_02_until.txt
-SHA1 0283a79b6146deea2b7207e8768f5ca0f4645cb5 t/data/03_03_until.txt
+SHA1 b9414e85553c1ee9a742e89ed440e68c59c425fb t/data/03_02_until.txt
+SHA1 bba4869306f8abe723c491aa5486488a30b1f32d t/data/03_03_until.txt
+SHA1 e35361c0a9ea20ce67b4120407d4596617d40921 t/data/04_00_sub.txt
 SHA1 a499978bda2cac5c23f02fdadda89e7a0debed66 t/graphpm.t
+SHA1 406ba33c16987171a44147baf4e38ef08b411ad8 t/parse.t
 SHA1 6d6e35debb38d9c0ea316b7397199c779561f188 t/pod.t
 SHA1 4c89ba997aca2b5b1955e68473e5f4565d86c71f t/pod_cov.t
 -----BEGIN PGP SIGNATURE-----
-Version: GnuPG v1.2.4 (GNU/Linux)
+Version: GnuPG v1.4.2 (GNU/Linux)
 
-iQEVAwUBQ9zcEHcLPEOTuEwVAQHvSwf+Oe04qTbOxAIgJn/xTD2SJQrznPT41dpZ
-QHbqiml69MqPWgnfdFjvhU1AmD3jaZ8sHVQYgkNjgv57c/o/3A3a5rTF914EeVOs
-FLhJo5XGbxu7keeHH/b5qitEVVi6jr6Y9F126qfiHE7HdlRpBV29HM5CifEove+2
-a4B19/qZvAbWuITzb9GRYZXb7T/bwuQSFL4qN4miq8OOSn9Xoi5hgQ1Cu4t/TRkp
-EE92HeJHL2OLfslD5JESSgfgWPH7uEEPy/Qe+kHG55sXIdGS3IaBEzTRU1NwvlOI
-7GdcbsUlI+TVQMG1WnUTcSCTxW7dJdJq+t3CAcJn/c6DU5/fpxm3CA==
-=p0z2
+iQEVAwUBRcN8EHcLPEOTuEwVAQK1JQf6A+FuHRFcJWcfmdMRSKH7U7tReLD6m1A5
+hNFamzm98QmCS1gcdXGVDg0FVBosgVhr7ifWeEN0AfVD3d4iop/DEnfhIezVbKM8
+qSB1Idy1XWFAUClO0ZFIDRaLB/+KhbNjvYtJ96wGCzPhP5qznFHjbbgxb2edjbmp
+yfVvVzjqP9tdtCgfZeIQUcQ2TA4kjlLUfXPFXt7lcJcGY5iPgd3ur+EAPW7yA4Gw
+caNZ5fb1aw/WO10Q/wy4sSIKnSwuLBYB0znvsATxhuiF9gnokqG5r9kPWayKixu0
+D8kxe1MwaOYX3VYTvZRFrzOXB7KtdSxvYdPJy42CwoDibseFnPdlAg==
+=ZJKU
 -----END PGP SIGNATURE-----

@@ -1,5 +1,5 @@
-# # no trailing ";"
 # print $a++ until ($a < 9)
+# no trailing ";"
 
                         ##################
                         #     start      #

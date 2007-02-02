@@ -3,7 +3,7 @@
 use lib 'lib';
 use Devel::Graph;
 
-my $code = shift || 'examples/test.pl';
+my $code = shift || 'examples/test';
 my $format = shift || 'as_ascii';
 my $debug = shift;
 
@@ -16,7 +16,8 @@ if ($debug)
   PPI::Dumper->new(PPI::Document->new($a), whitespace => 0)->print();
   }
 
-my $gr = Devel::Graph->graph($a);
+my $grapher = Devel::Graph->new();
+my $gr = $grapher->graph($a);
 
 print STDERR "Resulting graph has ", 
 	scalar $gr->nodes(), " nodes and ", 

@@ -1,7 +1,6 @@
 #############################################################################
-# Generate flowchart from perl code
+# Generate flowcharts from Perl code.
 #
-# (c) by Tels 2004-2006.
 #############################################################################
 
 package Devel::Graph;
@@ -11,22 +10,14 @@ use Graph::Easy::Base;
 use Graph::Flowchart;
 use Graph::Flowchart::Node qw/
   N_IF N_THEN N_ELSE N_JOINT N_BLOCK N_BODY
-  N_FOR
-  N_SUB 
-  N_RETURN
-  N_BREAK
-  N_LAST
-  N_GOTO
-  N_CONTINUE
-  N_NEXT
-  N_WHILE
-  N_UNTIL
+  N_SUB N_RETURN
+  N_BREAK N_LAST N_GOTO N_CONTINUE N_NEXT
+  N_FOR N_WHILE N_UNTIL
   /;
-require Exporter;
 
-$VERSION = '0.08';
+$VERSION = '0.10';
 
-@ISA = qw/Graph::Easy::Base Exporter/;
+@ISA = qw/Graph::Easy::Base/;
 @EXPORT_OK = qw/graph/;
 
 use strict;
@@ -45,6 +36,11 @@ sub _init
   $self->{opt}->{strip_pod} = ($args->{strip_pod} ? 1 : 0)
     if defined $args->{strip_pod};
 
+  $self->{fatal_errors} = $args->{fatal_errors};
+  $self->{fatal_errors} = 1 unless defined $self->{fatal_errors};
+
+  $self->{debug} = $args->{debug} || 0;
+
   $self->reset();
 
   $self;
@@ -57,16 +53,31 @@ sub option
   $self->{opt}->{$_[0]};
   }
 
+sub debug
+  {
+  my $self = shift;
+
+  $self->{debug} = $_[0] if @_;
+  $self->{debug};
+  }
+
 sub graph
   {
   # decompose code and return as Graph::Easy object
 
-  # allow Devel::Graph->graph() calling style
-  my $class = 'Devel::Graph';
-  $class = shift if @_ == 2; $class = ref($class) if ref($class);
+  # allow the following styles:
+  # Devel::Graph->graph($code);		@_ == 2  $class
+  # Devel::Graph::graph($code);		@_ == 1
+  # $grapher->graph($code);		@_ == 2  ref($self) == $class
+
+  my $self = 'Devel::Graph';
+  $self = shift if @_ == 2;
   my $code = shift;
 
-  my $self = $class->new();
+  if (! ref($self) )
+    {
+    $self = $self->new();
+    }
   $self->reset();
   $self->decompose($code);
   $self->{flow}->finish();
@@ -102,17 +113,15 @@ sub decompose
   {
   my ($self, $code) = @_;
 
-  $self->_init();				# clear data
-
-  $self->_croak("Expected SCALAR ref, but got " . ref($code))
+  $self->error("Expected SCALAR ref, but got " . ref($code))
    if ref($code) && ref($code) ne 'SCALAR';
 
-  $self->_croak("Got filename '$code', but can't read it: $!")
+  $self->error("Got filename '$code', but can't read it: $!")
    if !ref($code) && !-f $code;
 
   my $doc = PPI::Document->new($code);
 
-  $self->_croak ("Couldn't create PPI::Document from $code")
+  $self->error("Couldn't create PPI::Document from $code")
    unless ref($doc);
 
   $doc->prune('PPI::Token::Pod') if $self->{opt}->{strip_pod};
@@ -134,9 +143,12 @@ sub reset
   # reset the internal structure
   my $self = shift;
 
+  Graph::Easy::Base->_reset_id();
+
   $self->{cur_group} = undef;
   $self->{stack} = [];
   $self->{flow} = Graph::Flowchart->new();
+  $self->{flow}->{graph}->seed(0);
 
   $self;
   }
@@ -159,8 +171,6 @@ sub _find_first
       }
     }
 
-  $self->_croak ("Couldn't find any children of " .
-    ref($element) . " of types: " . join(", ",@_)." ");   
   undef;
   }
 
@@ -170,7 +180,7 @@ sub _find_second
   my $self = shift;
   my $element = shift;
 
-  $self->_croak("Got non-object as element: $element") unless ref $element;
+  $self->error("Got non-object as element: $element") unless ref $element;
 
   my @blocks;
   for my $child (@{$element->{children}})
@@ -182,8 +192,7 @@ sub _find_second
       }
     }
 
-  $self->_croak ("Couldn't find second children of " .
-    ref($element) . " of types: " . join(", ",@_)." ");   
+  undef;
   }
 
 sub _find_on_stack
@@ -197,7 +206,7 @@ sub _find_on_stack
     return $e if $e->{_type} == $type;
     }
 
-  $self->_croak("Couldn't find type $type on stack");
+  undef;
   }
 
 #############################################################################
@@ -210,8 +219,11 @@ sub _parse_compound
   # work around bug in PPI
   $type = $element->type() unless defined $type;
 
-  $self->_croak("Cannot determine type of compound element $element")
+  $self->error("Cannot determine type of compound element $element")
     unless defined $type;
+ 
+  $self->error("Cannot find condition: possible syntax error in $element")
+    unless defined $self->_find_first($element,'PPI::Structure::Condition');
  
   return $self->_parse_loop($element)
     if $type eq 'for' || $type eq 'foreach';
@@ -219,11 +231,24 @@ sub _parse_compound
   # ignoring whitespace and comments, find the condition
   my @blocks;
 
-  for my $child (@{$element->{children}})
+  my $condition = $element->clone();
+
+  my $in_cond = 0;
+  my @children = @{$condition->{children}};
+
+  for my $child (@children)
     {
-    push @blocks, $child if
-      $child->isa('PPI::Structure::Condition') ||      
-      $child->isa('PPI::Structure::Block');
+    next unless $child->significant();
+
+    if ($child->isa('PPI::Structure::Block'))
+      {
+      push @blocks, $child;
+      $in_cond = 2;
+      }
+
+    $child->remove() unless $in_cond == 1;
+
+    $in_cond = 1 if $in_cond == 0 && $child->isa('PPI::Token::Word');
     }
 
   ########################################################################
@@ -237,47 +262,92 @@ sub _parse_compound
   ########################################################################
   ########################################################################
 
-  return $self->_parse_if($type, @blocks)
+  ########################################################################
+  ########################################################################
+  # work around bug in PPI for "until" having type() return 'while'
+  if ($type eq 'while')
+    {
+    my $c = $element->find_first('PPI::Token::Word');
+    $type = 'until' if $c eq 'until';
+    }
+  ########################################################################
+  ########################################################################
+
+  $condition = $self->_normalize_condition($condition);
+
+  return $self->_parse_if($type, $condition, @blocks)
     if $type =~ /^(if|unless)\z/;
 
-  return $self->_parse_while($type, @blocks)
+  return $self->_parse_while($type, $condition, @blocks)
     if $type =~ /^(until|while)\z/;
 
-  $self->_croak("Unknown conditional type $type");
+  $self->error("Unknown conditional type $type");
+  }
+
+sub _normalize_condition
+  {
+  my ($self, $condition) = @_;
+
+  my $text = $condition->content();
+
+  $text =~ s/^\s+//;
+  $text =~ s/\s+\z//;
+
+  $text;
   }
 
 sub _parse_if
   {
-  my ($self, $type, $condition, $block) = @_;
+  my ($self, $type, $condition, $block, $else_block) = @_;
 
-  $self->_croak('Undefined block in if expression') unless defined $block;
+  $self->error('Undefined block in if expression') unless defined $block;
 
   my $flow = $self->{flow};
 
   # cur => if => then => joint
   #        |--------------^
   
-  my $if = $flow->add_new_block('if ' . $condition->content(), N_IF());
+  my $if = $flow->add_new_block('if ' . $condition, N_IF());
 
   my @edges = ('true','false');
   @edges = ('false','true') if $type eq 'unless';
 
   # cur => if => then
-  my $then = $flow->add_joint(); $flow->connect($if,$then,$edges[0]);
+  my $then = $flow->add_joint(); 
+  my $then_edge = $flow->connect($if,$then,$edges[0]);
+
   $flow->current_block($then);
 
   # fill in the "then" block
   $self->_parse($block);
+  my $last_then = $flow->add_new_joint();
 
-  # add a dummy-joint
-  my $else = $flow->add_new_joint();
- 
-  # connect the "if" block with the newly added joint
-  # cur => if => then => joint
-  #        ----false--------^
+  if ($else_block)
+    {
+    # cur => if =====> then => joint
+    #        --false-> else => ---^
 
-  $flow->connect($if,$else,$edges[1]);
-  $flow->current($else);
+    my $else_joint = $flow->add_joint();
+
+    my $else_edge = $flow->connect($if,$else_joint,$edges[1]);
+    $flow->current_block($else_joint);
+
+    $self->_parse($else_block);
+    
+    my $l_joint = $flow->add_new_joint();
+
+    $flow->connect($l_joint,$last_then);
+    }
+  else
+    {
+    # connect the "if" block with the newly added joint
+    # cur => if => then => joint
+    #        ----false--------^
+  
+    # add a dummy-joint
+    $flow->connect($if,$last_then,$edges[1]);
+    }
+  $flow->current($last_then);
   }
 
 sub _parse_sub
@@ -312,7 +382,7 @@ sub _parse_sub
 
 sub _parse_while
   {
-  # addd while() or until() loops
+  # add while() or until() loops
   my ($self, $type, $condition, $body, $continue) = @_;
 
   #  |----------- false ------------v
@@ -328,7 +398,15 @@ sub _parse_while
   my $body_block = $flow->add_joint();
 
   # -- true -->
-  $flow->connect($while,$body_block, $edges[0]);
+  my $true = $flow->connect($while,$body_block, $edges[0]);
+  # make the true edge start at the right side (perpendicular to flow)
+  $true->set_attribute('start','right') if $type eq 'until';
+
+  $body_block->set_attributes( {
+    offset => '-2,0',
+    origin => $while->name(),
+    });
+
   $flow->current($body_block);
 
   # insert the body
@@ -342,11 +420,18 @@ sub _parse_while
     }
 
   # connect body (or continue) back to while
-  $flow->connect($flow->current(), $while);
+  my $back = $flow->connect($flow->current(), $while);
+  # make the back edge end at the right side (perpendicular to flow)
+  $back->set_attribute('end','right,1');
 
   # connect body to next
   my $next = $flow->add_joint();
-  $flow->connect($while, $next, $edges[1]);
+
+  my $forward = $flow->connect($while, $next, $edges[1]);
+
+  # make that edge go forwards 
+  $forward->set_attribute('flow','forward');
+
   $flow->current($next);
   }
 
@@ -440,7 +525,6 @@ sub _parse_loop
       {
       # XXX TODO: if current is a joint, eliminate it
       # move all incoming edges to point directly to 'for'
-
       $flow->connect($cur, $for_block, 'next');
       }
     else
@@ -507,11 +591,12 @@ sub _parse_conditional
   for my $child (@{$element->{children}})
     {
     next unless $child->significant();		# ignore whitespace etc
-    $condition = $child, last if $child->isa('PPI::Structure::Condition');
     push @blocks, $child;
+    $condition = $child->snext_sibling(), last 
+     if $child->isa('PPI::Token::Word') && $child =~ /^(if|unless|until|while)\z/;
     }
 
-  my $type = pop @blocks;			# if, unless etc
+  my $type = pop @blocks;			# if, unless, until, or while
 
   # make a copy and delete the condition and the word before it
   # to get only the block of the condition:
@@ -534,14 +619,14 @@ sub _parse_conditional
     last if $child->significant(); 
     $child->delete();
     }
-
+  
   return $self->_parse_if($type, $condition, $block)
     if $type =~ /^(if|unless)\z/;
 
   return $self->_parse_while($type, $condition, $block)
     if $type =~ /^(until|while)\z/;
 
-  $self->_croak("Unknown conditional type $type");
+  $self->error("Unknown conditional type $type");
   }
 
 my $types = {
@@ -566,7 +651,7 @@ sub _parse_break
   if ($type ne 'return')
     {
     my $t = $types->{"$type"};
-    $self->_croak("Unrecognized break type $type") unless defined $t;
+    $self->error("Unrecognized break type $type") unless defined $t;
 
     # ignore first Token::Word
     $target = $self->_find_second($element, 'PPI::Token::Word');
@@ -597,6 +682,13 @@ sub _parse_expression
 #############################################################################
 # main parse routine, recursive
 
+sub _error
+  {
+  require Carp;
+
+  Carp::confess($_);
+  }
+
 sub _parse
   {
   # take a PPI::ELement and descend into it recursively
@@ -605,23 +697,13 @@ sub _parse
 
 #  print STDERR "parsing ", ref($element)," ($element)\n";
 
-  $self->_croak('Encountered an undefined element while parsing')
+  $self->error('Encountered an undefined element while parsing')
     unless defined $element;
 
-  # handle if, while, for
+  # handle 'if', 'while', 'for', 'until' as compound statements
+  # Example: until ($a < 9) { $b++; }
   return $self->_parse_compound($element)
     if $element->isa('PPI::Statement::Compound');
-
-  ########################################################################
-  ########################################################################
-  # work around bug in PPI not parsing "until" as Compound
-  my $w;
-  $w = $element->first_token() if $element->isa('PPI::Statement'); 
- 
-  return $self->_parse_compound($element, 'until')
-    if defined $w && $w eq 'until';
-  ########################################################################
-  ########################################################################
 
   # handle sub 
   return $self->_parse_sub($element)
@@ -631,8 +713,16 @@ sub _parse
   return $self->_parse_break($element)
     if $element->isa('PPI::Statement::Break');
 
+  # Example: "$a = 9 if ($b == 9);" - note the "()"!
   return $self->_parse_conditional($element)
     if (ref($element) eq 'PPI::Statement' && $element->find_any('PPI::Structure::Condition'));
+
+  # Example: "$a = 9 if $b == 9;" - note the missing "()"!
+  if (ref($element) eq 'PPI::Statement')
+    {
+    my $c = $element->find_first('PPI::Token::Word');
+    return $self->_parse_conditional($element) if $c =~ /^(if|unless)\z/;
+    }
 
   # handle normal expressions like:
   # "$a == 1"
@@ -642,8 +732,7 @@ sub _parse
 #        ($element->isa('PPI::Statement::Expression')) ||
 #        ($element->isa('PPI::Statement::Include'))    );
 
-  # recurse into our children, but ignore:
-  # whitespace, comments, Null (";") etc
+  # recurse into our children, but ignore whitespace, comments, Null (";") etc:
   if ($element->isa('PPI::Node'))
     {
     foreach my $child (@{$element->{children}})
@@ -658,25 +747,53 @@ __END__
 
 =head1 NAME
 
-Devel::Graph - Turn Perl code into a Graph::Flowchart object
+Devel::Graph - Turn Perl code into a graphical flowchart
 
 =head1 SYNOPSIS
 
 	use Devel::Graph;
+	my $grapher = Devel::Graph->new();
 
-	my $graph = Devel::Graph->graph( \'$a = 9 if $b == 1' );
-
+	my $graph = $grapher->decompose( \'if ($b == 1) { $a = 9; }' );
 	print $graph->as_ascii();
+
+	# Will result in something like this:
+
+	################
+	#    start     #
+	################
+	  |
+	  |
+	  v
+	+--------------+
+	| if ($b == 1) |--+
+	+--------------+  |
+	  |               |
+	  | true          |
+	  v               |
+	+--------------+  |
+	|   $a = 9;    |  | false
+	+--------------+  |
+	  |               |
+	  |               |
+	  v               |
+	################  |
+	#     end      # <+
+	################
+
+	# Alternatively, read in code from a file
+	my $graph_2 = $grapher->decompose( 'lib/Foo.pm' );
+	print $graph_2->as_ascii();
 
 =head1 DESCRIPTION
 
 This module decomposes Perl code into blocks and generates a
 L<Graph::Flowchart> object out of these. The resulting object represents the
-code in a flowchart manner and it can return you a L<Graph::Easy> object.
+code in a flowchart manner and it can return an L<Graph::Easy> object.
 
 This in turn can be converted it into all output formats currently
 supported by C<Graph::Easy>, namely HTML, SVG, ASCII art, Unicode art,
-graphviz text etc.
+graphviz code (which then can be rendered as PNG etc) etc.
 
 =head2 Parsing
 
@@ -711,7 +828,7 @@ by setting class attributes on the returned graph object:
 
 Subclasses for C<node> include C<if>, C<for>, C<start>, C<end>, C<continue> etc.
 For a list of all possible classes see C<Graph::Flowchart>, and for a list
-of all possible attributes and their values, see C<Graph::Easy>.
+of all possible attributes and their values, see L<Graph::Easy>.
 
 =head1 EXPORT
 
@@ -730,13 +847,13 @@ other methods are for an object-oriented model.
 Takes Perl code in $code (as SCALAR ref or scalar filename) and returns a flowchart
 as C<Graph::Easy> object. It will strip all POD before composing the flowchart.
 
-This is a shortcut to avoid the OO interface described below and will
-be equivalent to:
+This is a shortcut to avoid the OO interface described below, you should better
+use this:
 
 	my $code = \'$a = 9;';
 	my $flow = Devel::Graph->new();
 	$flow->decompose( $code );
-	$flow->finish( $code );
+	$flow->finish();
 	my $graph = $grapher->as_graph();
 
 Please see C<Graph::Easy> for further details on what to do with the
@@ -756,12 +873,23 @@ arguments are valid:
 			POD sections are usually very large, resulting in huge
 			nodes, that can, f.i. crash graphviz or result in
 			poor output quality.
+	debug		Defaults to false. When set to true, enables debug output.
+	fatal_errors	Defaults to true. When set to true, errors are fatal.
 
 =head2 option()
 
 	my $option = $flow->option($name);
 
 Return the option with the given name from the Devel::Graph object.
+
+=head2 debug()
+
+	my $debug = $grapher->debug();	# get
+	$grapher->debug(1);		# enable
+	$grapher->debug(0);		# disable
+
+Enable, disable or read out the debug status. When the debug status is true,
+additional debug messages will be printed on STDERR.
 
 =head2 decompose()
 
@@ -813,11 +941,16 @@ Not all Perl constructs are implemented yet, especially the more esoteric
 Perl constructs.
 
 Also, things like C<<$a = 9 if $b == 9>> (no C< () > around
-the condition) are buggy and/or incomplete.
+the condition) are buggy and/or incomplete, due to the way PPI
+parses the code.
+
+Help in testing and bugreports are always welcome!
+
+X<bugs>
 
 =head1 SEE ALSO
 
-L<Graph::Easy>, L<Graph::Flowchart>, L<PPI>.
+L<Graph::Easy>, L<Graph::Flowchart>, L<PPI>, L<B::Graph>.
 
 =head1 COPYRIGHT AND LICENSE
 
@@ -829,7 +962,7 @@ X<gpl>
 
 =head1 AUTHOR
 
-Copyright (C) 2004-2006 by Tels L<http://bloodgate.com>
+Copyright (C) 2004-2007 by Tels L<http://bloodgate.com>
 
 X<tels>
 X<bloodgate.com>
