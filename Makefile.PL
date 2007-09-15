@@ -14,7 +14,7 @@ all_from	'lib/Devel/Graph.pm';
 requires	'Scalar::Util'		=> 1.13,
 		'PPI'			=> 1.118,
 		'Graph::Flowchart'	=> 0.10;
-		'Graph::Easy'		=> 0.52;
+		'Graph::Easy'		=> 0.59;
 
 build_requires  'Test::More'		=> 0.42,
 		'Test::Differences'	=> 0.47;

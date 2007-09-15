@@ -15,27 +15,29 @@ not run its Makefile.PL or Build.PL.
 Hash: SHA1
 
 SHA1 38dd40d4fe9a8a408648f2f2c1a2a3ac76bbac72 Build.PL
-SHA1 d830e1c3f0eb62a3b9a05ee39cef1eb411f81607 CHANGES
+SHA1 cdb5ae5c7e67d7413b922dee855ca84c3ec449fb CHANGES
 SHA1 02154445bc9831e791c35050f1a018ed99030016 LICENSE
-SHA1 c15f83516458db9c473d9de14a8380c1b1b45750 MANIFEST
-SHA1 402f98488ecf476af86a6fa0a7d55ee31245ff0b META.yml
-SHA1 82b9af92e51c027603cecbaedec91e2dc575c792 Makefile.PL
+SHA1 170e39f4d816637fb61b825e82e415cffe6168b5 MANIFEST
+SHA1 4f111e5808a5629971aa04ec56c3eb886255ff10 MANIFEST.SKIP
+SHA1 5b93f8fab738d4cdbc36f2b7a22bca8796e49ec6 META.yml
+SHA1 04f0201446bb795a16fe6a22ca308f6761f6b538 Makefile.PL
 SHA1 8a76ee8846378e727f2b27656550aa4cd9f2cac9 README
 SHA1 a4fcf0fc6a485f15814c9c0855e3be55808f7e5f TODO
 SHA1 414f218461ba808184dc64d94614e2f72d331dae examples/chart
 SHA1 603bb9de29fb8cba7f13409c546750972eff645d inc/Module/AutoInstall.pm
-SHA1 9b2f9d83bcf77860f53a0c07c90a4a59ad9f5df1 inc/Module/Install.pm
-SHA1 ad955f51ad2c40d4ba35395c27f5ed899a80bf7a inc/Module/Install/AutoInstall.pm
-SHA1 abe32855d75ab13747cf65765af9947b7a8c3057 inc/Module/Install/Base.pm
-SHA1 da9dfbb8ae4a8a8bac0ab9cd7ef7dc89e4cb5dbe inc/Module/Install/Build.pm
-SHA1 95b81d1e91bd634467bf633571eff4420e9c04eb inc/Module/Install/Can.pm
-SHA1 1fe98c63cf9d7271c8cb4183ba230f152df69e26 inc/Module/Install/Fetch.pm
-SHA1 0606a8b02a420600bc3e2b65ab82f70266784926 inc/Module/Install/Include.pm
-SHA1 2249171a2b72cd73ff2c0a06597d29f86e5df456 inc/Module/Install/Makefile.pm
-SHA1 381bb98ea3877bba49ae85e7a7ea130645fd3dbf inc/Module/Install/Metadata.pm
-SHA1 0c2118868ef82ac517eb6d9c3bd93e6eb9bbf83e inc/Module/Install/Win32.pm
-SHA1 e827d6d43771032fa3df35c0ad5e5698d0e54cda inc/Module/Install/WriteAll.pm
-SHA1 3279e75d847dbb5f04823222f3c4c56706a37fc0 lib/Devel/Graph.pm
+SHA1 ceac99579ef3914de1936417282842c07d907a6a inc/Module/Install.pm
+SHA1 c289fbaf0a2bce39c4993dab38fc70cbb3789f57 inc/Module/Install/AutoInstall.pm
+SHA1 6c9471c92c28e247fb84f4ab7dc277f68b33ea95 inc/Module/Install/Base.pm
+SHA1 6ecc9d4d9b41480c00987af7d4b8daec4ca8a7b4 inc/Module/Install/Build.pm
+SHA1 b2cb1026330e8c4f8533c79569498ab15f189d86 inc/Module/Install/Can.pm
+SHA1 78acbad45c4289c228ead2278fc213ddd66bcead inc/Module/Install/Fetch.pm
+SHA1 a4b4488af13b5d038bb6fbd3c4ec635d2c640567 inc/Module/Install/Include.pm
+SHA1 642e5b27f4cbbbe440e5dc05c639f5fb79875fe3 inc/Module/Install/Makefile.pm
+SHA1 80d024f3eccf1c825b02b5e59de236b0af7d4bfc inc/Module/Install/Metadata.pm
+SHA1 fe6780ea5cfd67c79140699fbd4f0fe262255d57 inc/Module/Install/Win32.pm
+SHA1 51d43bffcfd7ffdecb8c8e9f97f3896c31b2e1b2 inc/Module/Install/WriteAll.pm
+SHA1 dcbfa88316b945062d4e48c6b6da6c43f0dabaf4 lib/Devel/Graph.pm
+SHA1 8e4efa68a0eb57e6cfd7e23595ec61bb0b37342b t/closure.t
 SHA1 ad8def85adca2cc31260ff842337520d481b60a7 t/croak.t
 SHA1 904a74eca44ce4f61244eaea74d528c95f7bd595 t/data/00_00_if.txt
 SHA1 6c73955e5f1b8b9543f893e264378ceaa66c7d83 t/data/00_01_if.txt
@@ -54,17 +56,18 @@ SHA1 b9414e85553c1ee9a742e89ed440e68c59c425fb t/data/03_02_until.txt
 SHA1 bba4869306f8abe723c491aa5486488a30b1f32d t/data/03_03_until.txt
 SHA1 e35361c0a9ea20ce67b4120407d4596617d40921 t/data/04_00_sub.txt
 SHA1 a499978bda2cac5c23f02fdadda89e7a0debed66 t/graphpm.t
+SHA1 5f47198bb09384760e9b89c5f4b674ecc05fb558 t/loop.t
 SHA1 406ba33c16987171a44147baf4e38ef08b411ad8 t/parse.t
 SHA1 6d6e35debb38d9c0ea316b7397199c779561f188 t/pod.t
 SHA1 4c89ba997aca2b5b1955e68473e5f4565d86c71f t/pod_cov.t
 -----BEGIN PGP SIGNATURE-----
 Version: GnuPG v1.4.2 (GNU/Linux)
 
-iQEVAwUBRcN8EHcLPEOTuEwVAQK1JQf6A+FuHRFcJWcfmdMRSKH7U7tReLD6m1A5
-hNFamzm98QmCS1gcdXGVDg0FVBosgVhr7ifWeEN0AfVD3d4iop/DEnfhIezVbKM8
-qSB1Idy1XWFAUClO0ZFIDRaLB/+KhbNjvYtJ96wGCzPhP5qznFHjbbgxb2edjbmp
-yfVvVzjqP9tdtCgfZeIQUcQ2TA4kjlLUfXPFXt7lcJcGY5iPgd3ur+EAPW7yA4Gw
-caNZ5fb1aw/WO10Q/wy4sSIKnSwuLBYB0znvsATxhuiF9gnokqG5r9kPWayKixu0
-D8kxe1MwaOYX3VYTvZRFrzOXB7KtdSxvYdPJy42CwoDibseFnPdlAg==
-=ZJKU
+iQEVAwUBRuxG1HcLPEOTuEwVAQKhIAf/RZ6PEia5J+ocSWxLAlnGPH/WfFCucDGV
+AuueYASaYZvUD+QKrpfxAxCGOy7xVjrQCVqCmyRtGIKhYr4KiCBuMPzUQRZN/LOm
+64qa/MsxLSXGBcK5nvSF10G8Om9XZEKSL71xf4ueUBlLbw6AtuObAAgAotKPXRcV
+aLzCejnSTCouZDAD6lAgssDrxHrcMd8qa+7H3RAL78piS/6W/GLuVLGQvfhztTsN
+C4BYwrXTK6hnmzglteKOm+0vf1QAgDlssN15XEwkqrStmBkv/y2Zxizce6/uICVd
+eIuB+9BIvDkCYwgr2dobmi8SR7J6+4/Ov6XGKviG+8sHUpmCgnKR+g==
+=CwnW
 -----END PGP SIGNATURE-----

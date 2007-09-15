@@ -15,7 +15,7 @@ use Graph::Flowchart::Node qw/
   N_FOR N_WHILE N_UNTIL
   /;
 
-$VERSION = '0.10';
+$VERSION = '0.11';
 
 @ISA = qw/Graph::Easy::Base/;
 @EXPORT_OK = qw/graph/;
@@ -221,12 +221,16 @@ sub _parse_compound
 
   $self->error("Cannot determine type of compound element $element")
     unless defined $type;
+
+  # closures (bug #29346)
+  return $self->_parse($element->children)
+    if $type eq 'continue';
+
+  return $self->_parse_loop($element)
+    if $type eq 'for' || $type eq 'foreach';
  
   $self->error("Cannot find condition: possible syntax error in $element")
     unless defined $self->_find_first($element,'PPI::Structure::Condition');
- 
-  return $self->_parse_loop($element)
-    if $type eq 'for' || $type eq 'foreach';
 
   # ignoring whitespace and comments, find the condition
   my @blocks;
