@@ -15,7 +15,7 @@ use Graph::Flowchart::Node qw/
   N_FOR N_WHILE N_UNTIL
   /;
 
-$VERSION = '0.11';
+$VERSION = '0.12';
 
 @ISA = qw/Graph::Easy::Base/;
 @EXPORT_OK = qw/graph/;

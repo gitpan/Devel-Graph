@@ -1,5 +1,11 @@
 Revision history for Perl extension Devel::Graph.
 
+0.12 2007-12-15 Tels 53 tests
+  * require Graph::Easy v0.60
+  * fix false fails on outdated Perl (less than 5.8.1)
+  * fix pod_cov.t to work with Perl v5.10.x
+  * fixup Makefile.PL (use test_requires, quote versions)
+
 0.11 2007-09-15 Tels 53 tests
   * require Graph::Easy v0.59
   * fix bug #29346 (closures and for loops not recognized, thanx moghroth)
